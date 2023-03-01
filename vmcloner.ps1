@@ -20,6 +20,3 @@ function cloner($toClone, $baseVM, $newName){
   }
 }
 
-#cloner -toClone "480-FW" -baseVM "Base" -newName "480-FW-2"
-#cloner -toClone "xubuntu-wan" -baseVm "Base" -newName "xubuntu-wan-2"
-cloner -toClone "dc1" -baseVM "Base" -newName "dc-base-2"
