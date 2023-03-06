@@ -9,6 +9,10 @@ $pGroupName = Read-Host -Prompt "Enter the name for the new Portgroup"
 vSwitch -vSwitchName $vSwitchName -pGroupName $pGroupName -vHost $conf.vm_host -vServer $conf.vcenter_server
 Get-VirtualSwitch
 Get-VirtualPortGroup
-#>
 
 Get-VMInfo -vServer $conf.vcenter_server
+
+
+#>
+
+Set-Network -vServer $conf.vcenter_server

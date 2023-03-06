@@ -44,7 +44,7 @@ function Select-VM(){
         $pick_index = Read-Host "Which index number [x] do you wish to pick?"
         #480-TODO need to deal with an invalid index (consider making this check a function)
         $selected_vm = $vms[$pick_index -1]
-        Write-Host "You picked " $selected_vm.name
+        Write-Host "You picked" $selected_vm.name
         #note this is a full on vm object that we can interact with
         return $selected_vm
     }
@@ -62,8 +62,8 @@ function cloner($toClone, $baseVM, $newName){
     
       $vm = Get-VM -Name $toClone
       $snapshot = Get-Snapshot -VM $vm -Name $baseVM
-      $vmhost = Get-VMHost -Name "192.168.7.21"
-      $ds = Get-DataStore -Name "datastore2-super11"
+      $vmhost = Get-VMHost -Name $conf.vm_host
+      $ds = Get-DataStore -Name $conf.storage
       $linkedClone = "{0}.linked" -f $vm.name
       $linkedVM = New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $vmhost -Datastore $ds
       $newvm = New-VM -Name "$newName.base" -VM $linkedVM -VMHost $vmhost -Datastore $ds
@@ -95,9 +95,10 @@ function cloner($toClone, $baseVM, $newName){
 }
 
 function Get-VMInfo([string] $vServer){
+    #Can probably be done with a single command consolidated into Get-VM, will try later.
     try{  
-        #Use what's returned from the Select-VM function to get the IP address, MAC address, and network adapter information
         $selected_vm = Select-VM
+        Get-VM -Name $selected_vm.Name | Select-Object Name, @{N="IP";E={$_.Guest.IPAddress[0]}}
         Get-NetworkAdapter -Server $vServer -VM $selected_vm.Name | Format-Table -AutoSize
     }
     catch {
@@ -106,22 +107,71 @@ function Get-VMInfo([string] $vServer){
     }
 }
 
-function vmBoot(){
+function BootVM(){
     try{
-
+        $selected_vm = Select-VM
+        #Show if the VM is powered on or off
+        Write-Host $selected_vm.PowerState
+        #If the VM is off, ask user if they want to power it on
+        if($selected_vm.PowerState = "PoweredOn"){
+            Read-Host "Would you like to shut the vm off? [y/n]"
+            if($answer -eq "y"){
+                Stop-VM -VM $selected_vm.Name
+            }
+            else{
+                Write-Host "VM is online."
+        }
+    }
+        elseif($selected_vm.PowerState = "PoweredOff") {
+            Read-Host "Would you like to power the vm? [y/n]"
+            if($answer -eq "y"){
+                Start-VM -VM $selected_vm.Name
+            }
+            else{
+                Write-Host "VM is offline."
+            }
+        }
     }
     catch {
-            Write-Host "Error with VM Identifier."
+            Write-Host "Error with VM Booter"
             exit
     }
 }
 
-function setNetwork(){
+function Set-Network([string] $vServer){
     try{
+        $selected_vm = Select-VM
+        $virtAdapter = Get-NetworkAdapter -Server $vServer -VM $selected_vm.Name
+        Write-Host $virtAdapter
+        $index =1
+        foreach($adapter in $virtAdapter){
+            Write-Host [$index] $adapter.name
+            $index+=1
+        }
+        $pick_index = Read-Host "Which index number [x] do you wish to pick?"
+        $selected_adapter = $virtAdapter[$pick_index -1]
+        Write-Host "You picked" $selected_adapter.name
+        $virtualNetworks = Get-VirtualNetwork -Server $conf.vcenter_server
+        Write-Host $virtualNetworks
+        $index =1
+        foreach($network in $virtualNetworks){
+            Write-Host [$index] $network.name
+            $index+=1
+        }
+        $pick_index = Read-Host "Which index number [x] do you wish to pick?"
+        $selected_network = $virtualNetworks[$pick_index -1]
+        Write-Host "You picked" $selected_network.name
+        Set-NetworkAdapter -VM $selected_vm.Name -NetworkAdapter $selected_adapter.name -Portgroup $selected_network.Name WhatIf
+
+
+        <#
+     
+        Set-NetworkAdapter -Server $vServer -VM $selected_vm.Name -Portgroup $selected_network.name WhatIf
+        #>
 
     }
     catch {
-            Write-Host "Error with VM Identifier."
+            Write-Host "Error with Set-Network."
             exit
     }
 }
