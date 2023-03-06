@@ -31,9 +31,10 @@ function Get-480Config([string] $config_path){
     return $conf
 }
 
-function Select-VM([string] $folder){
+function Select-VM(){
     $selected_vm=$null
     try{
+        $folder = Read-Host "Enter the folder name."
         $vms = Get-VM -Location $folder
         $index =1
         foreach($vm in $vms){
@@ -75,15 +76,14 @@ function cloner($toClone, $baseVM, $newName){
     }
   }
   
-  function vSwitch([string] $vSwitchName, [string] $pGroupName, [string] $vServer){
-    480Connect
-    # It knows the host, and it retains, why can't it find the host????
-    # Refer to https://vdc-download.vmware.com/vmwb-repository/dcr-public/73d6de02-05fd-47cb-8f73-99d1b33aea17/850c6b63-eb82-4d9c-bfcf-79279b5e5637/doc/New-VirtualSwitch.html
+  function vSwitch([string] $vSwitchName, [string] $pGroupName, [string] $vHost, [string] $vServer){
+    480Connect #Just making sure the connection works
+    
     try{
         Write-Host $vSwitchName
         Write-Host $pGroupName
 
-        $virSwitch = New-VirtualSwitch -VMHost $vServer -Name $vSwitchName
+        $virSwitch = New-VirtualSwitch -VMHost $vHost -Name $vSwitchName
         $vPG = New-VirtualPortGroup -Name $pGroupName -VirtualSwitch $virSwitch -Server $vServer
         return $vPG
 
@@ -94,9 +94,11 @@ function cloner($toClone, $baseVM, $newName){
     }
 }
 
-function iDent(){
-    try{
-
+function Get-VMInfo([string] $vServer){
+    try{  
+        #Use what's returned from the Select-VM function to get the IP address, MAC address, and network adapter information
+        $selected_vm = Select-VM
+        Get-NetworkAdapter -Server $vServer -VM $selected_vm.Name | Format-Table -AutoSize
     }
     catch {
             Write-Host "Error with VM Identifier."

@@ -2,5 +2,7 @@
 
 {
     "vcenter_server" : "vcenter.john.local",
-    "vm_folder" : "Base"
+    "vm_folder" : "Base",
+    "vm_host" : "192.168.7.21",
+    "storage" : "datastore2-super11"
 }
