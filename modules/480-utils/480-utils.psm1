@@ -14,6 +14,7 @@ function 480Connect([string] $server){
         $conn = Connect-VIServer -Server $server
         #if this fails, let Connect-VIServer handle the encryption
     }
+    return $conn
 }
 
 function Get-480Config([string] $config_path){
@@ -52,3 +53,73 @@ function Select-VM([string] $folder){
     }
 }
 
+function cloner($toClone, $baseVM, $newName){
+    try{
+      Write-Host $toClone
+      Write-Host $baseVM
+      Write-Host $newName
+    
+      $vm = Get-VM -Name $toClone
+      $snapshot = Get-Snapshot -VM $vm -Name $baseVM
+      $vmhost = Get-VMHost -Name "192.168.7.21"
+      $ds = Get-DataStore -Name "datastore2-super11"
+      $linkedClone = "{0}.linked" -f $vm.name
+      $linkedVM = New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $vmhost -Datastore $ds
+      $newvm = New-VM -Name "$newName.base" -VM $linkedVM -VMHost $vmhost -Datastore $ds
+      $newvm | New-Snapshot -Name "Base"
+      $linkedvm | Remove-VM
+    }
+    catch {
+      Write-Host "Error with VM creation."
+      exit
+    }
+  }
+  
+  function vSwitch([string] $vSwitchName, [string] $pGroupName, [string] $vServer){
+    480Connect
+    # It knows the host, and it retains, why can't it find the host????
+    # Refer to https://vdc-download.vmware.com/vmwb-repository/dcr-public/73d6de02-05fd-47cb-8f73-99d1b33aea17/850c6b63-eb82-4d9c-bfcf-79279b5e5637/doc/New-VirtualSwitch.html
+    try{
+        Write-Host $vSwitchName
+        Write-Host $pGroupName
+
+        $virSwitch = New-VirtualSwitch -VMHost $vServer -Name $vSwitchName
+        $vPG = New-VirtualPortGroup -Name $pGroupName -VirtualSwitch $virSwitch -Server $vServer
+        return $vPG
+
+    }
+    catch {
+      Write-Host "Error with VSwitch and Portgroup creation."
+      exit
+    }
+}
+
+function iDent(){
+    try{
+
+    }
+    catch {
+            Write-Host "Error with VM Identifier."
+            exit
+    }
+}
+
+function vmBoot(){
+    try{
+
+    }
+    catch {
+            Write-Host "Error with VM Identifier."
+            exit
+    }
+}
+
+function setNetwork(){
+    try{
+
+    }
+    catch {
+            Write-Host "Error with VM Identifier."
+            exit
+    }
+}
