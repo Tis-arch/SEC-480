@@ -54,7 +54,26 @@ function Select-VM(){
     }
 }
 
-function cloner($toClone, $baseVM, $newName){
+function linkedCloner(){
+    try{
+
+    $toClone = Select-VM
+    $baseVM = Read-Host "Enter base snapshot name."
+    $vmhost = Get-VMHost -Name $conf.vm_host
+    $ds = Get-DataStore -Name $conf.storage
+    $vm = Get-VM -Name $toClone.name
+    $snapshot = Get-Snapshot -VM $vm -Name $baseVM
+    $linkedClone = "{0}.linked" -f $vm.name
+    New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $vmhost -Datastore $ds
+    
+    }
+    catch {
+      Write-Host "Error with VM linked clone creation."
+      exit
+    }
+  }
+
+  function cloner($toClone, $baseVM, $newName){
     try{
       Write-Host $toClone
       Write-Host $baseVM
@@ -75,6 +94,7 @@ function cloner($toClone, $baseVM, $newName){
       exit
     }
   }
+  
   
   function vSwitch([string] $vSwitchName, [string] $pGroupName, [string] $vHost, [string] $vServer){
     480Connect #Just making sure the connection works
@@ -107,42 +127,72 @@ function Get-VMInfo([string] $vServer){
     }
 }
 
-function BootVM(){
+function VMStatus([string] $Name){
+    Get-VM -Name $Name
+}
+
+function VMStart([string] $Name){
     try{
-        $selected_vm = Select-VM
-        #Show if the VM is powered on or off
-        Write-Host $selected_vm.PowerState
-        #If the VM is off, ask user if they want to power it on
-        if($selected_vm.PowerState = "PoweredOn"){
-            Read-Host "Would you like to shut the vm off? [y/n]"
-            if($answer -eq "y"){
-                Stop-VM -VM $selected_vm.Name
-            }
-            else{
-                Write-Host "VM is online."
-        }
-    }
-        elseif($selected_vm.PowerState = "PoweredOff") {
-            Read-Host "Would you like to power the vm? [y/n]"
-            if($answer -eq "y"){
-                Start-VM -VM $selected_vm.Name
-            }
-            else{
-                Write-Host "VM is offline."
-            }
-        }
+        Get-VM -Name $Name
+        Start-VM -VM $Name -Confirm
     }
     catch {
-            Write-Host "Error with VM Booter"
-            exit
+        Write-Host "Your VM is already on"
     }
 }
 
-function Set-Network([string] $vServer){
+function VMStop([string] $Name){
+    try{
+        Get-VM -Name $vmToStop
+        Stop-VM -VM $vmToStop -Confirm -Kill
+    }
+    catch {
+        Write-Host "Your VM is already off"
+    }
+}
+
+function VMBoot(){
     try{
         $selected_vm = Select-VM
-        $virtAdapter = Get-NetworkAdapter -Server $vServer -VM $selected_vm.Name
-        Write-Host $virtAdapter
+        #Show if the VM is powered on or off
+        $powrState = $selected_vm.PowerState
+        Write-Host "This VM is currently" $powrState
+        if ($powrState -eq "PoweredOff"){
+            VMStart -Name $selected_vm.Name
+        }
+        if ($powrState -eq "PoweredOn"){
+            VMStop -Name $selected_vm.Name
+        }
+    }
+catch {
+    Write-Host "Error with VM Booter"
+    exit
+    }
+    return $powrState
+}
+
+
+function Set-Network([string] $vServer){
+    #Add selecting adapters later, had a problem that I couldn't figure out.
+    try{
+        $selected_vm = Select-VM
+        $virtualNetworks = Get-VirtualNetwork -Server $conf.vcenter_server
+        Write-Host $virtualNetworks
+        $index =1
+        foreach($network in $virtualNetworks){
+            Write-Host [$index] $network.name
+            $index+=1
+        }
+        $pick_index = Read-Host "Which index number [x] do you wish to pick?"
+        $selected_network = $virtualNetworks[$pick_index -1]
+        Write-Host "You picked" $selected_network.name
+        $virtNet = Get-VirtualNetwork -Name $selected_network.Name
+        Get-VM -Name $selected_vm.name | Get-NetworkAdapter | Set-NetworkAdapter -NetworkName $virtNet -Confirm:$false
+        <#
+     
+        Set-NetworkAdapter -Server $vServer -VM $selected_vm.Name -Portgroup $selected_network.name WhatIf
+        
+         Write-Host $virtAdapter
         $index =1
         foreach($adapter in $virtAdapter){
             Write-Host [$index] $adapter.name
@@ -161,14 +211,8 @@ function Set-Network([string] $vServer){
         $pick_index = Read-Host "Which index number [x] do you wish to pick?"
         $selected_network = $virtualNetworks[$pick_index -1]
         Write-Host "You picked" $selected_network.name
-        Set-NetworkAdapter -VM $selected_vm.Name -NetworkAdapter $selected_adapter.name -Portgroup $selected_network.Name WhatIf
-
-
-        <#
-     
-        Set-NetworkAdapter -Server $vServer -VM $selected_vm.Name -Portgroup $selected_network.name WhatIf
+        Get-VM -Name $selected_vm.Name | Get-NetworkAdapter | Set-NetworkAdapter -VM $selected_vm.Name -NetworkAdapter $selected_adapter.name -Portgroup $selected_network.Name -WhatIf -Confirm 
         #>
-
     }
     catch {
             Write-Host "Error with Set-Network."
