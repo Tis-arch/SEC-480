@@ -1,0 +1,22 @@
+- name: vyos net conf
+  hosts: vyos
+  vars_prompt:
+
+  - name: password
+    prompt: Enter a new Password
+    private: true
+  tasks:
+    - name: set hash
+      set_fact:
+        password_hash: "{{ password | password_hash('sha512') }}"
+    - name: Load config
+      become: yes
+      template:
+        src: inventories/config.boot.j2
+        dest: /config/config.boot
+        mode: "0775"
+        owner: root
+        group: vyattacfg
+    - name: end properly
+      become: yes
+      shell: nohup bash -c "/usr/bin/sleep 5 && /usr/sbin/shutdown -r now" &
