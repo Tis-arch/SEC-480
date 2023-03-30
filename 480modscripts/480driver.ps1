@@ -26,12 +26,13 @@ Get-VirtualSwitch
 Get-VirtualPortGroup
 #Write-Host "VM Identifier active. Stop process to exit."
 Get-VMInfo -vServer $conf.vcenter_server
+
+
 #>
 Write-Host "VM Cloner active. Stop process to exit."
-#linkedCloner
+linkedCloner
 Write-Host "VM Boot active. Stop process to exit."
 VMBoot
 Write-Host "Network Setter active. Stop process to exit."
 Set-Network -vServer $conf.vcenter_server
-
 
