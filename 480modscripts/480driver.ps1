@@ -25,14 +25,19 @@ vSwitch -vSwitchName $vSwitchName -pGroupName $pGroupName -vHost $conf.vm_host -
 Get-VirtualSwitch
 Get-VirtualPortGroup
 #Write-Host "VM Identifier active. Stop process to exit."
-Get-VMInfo -vServer $conf.vcenter_server
 
 
-#>
 Write-Host "VM Cloner active. Stop process to exit."
 linkedCloner
 Write-Host "VM Boot active. Stop process to exit."
 VMBoot
 Write-Host "Network Setter active. Stop process to exit."
 Set-Network -vServer $conf.vcenter_server
-
+Get-VMInfo -vServer $conf.vcenter_server
+#>
+$vmName = Read-Host "Enter the name of the VM you wish to upgrade"
+$memAmt = Read-Host "Enter new memory amount"
+$cpuAmt = Read-Host "Enter new CPU amount"
+Edit-VM -vmName $vmName -memAmt $memAmt -cpuAmt $cpuAmt
+#this is done in GB
+# This may take a bit.

@@ -219,3 +219,11 @@ function Set-Network([string] $vServer){
             exit
     }
 }
+
+function Edit-VM([string] $vmName, [int] $memAmt, [int] $cpuAmt){
+    $vm = Get-VM -Name $vmName
+    VMStop -vmToStop $vm
+    Get-VM -Name $vm | Select-Object Name, PowerState, MemoryGB, NumCpu, VMHost, Version
+    Get-VM -Name $vm | Set-VM -MemoryGB $memAmt -NumCpu $cpuAmt -Confirm:$false
+    Write-Host "Memory and CPU Upgrade Complete" -ForegroundColor Green
+}

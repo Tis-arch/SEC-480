@@ -1,0 +1,47 @@
+- name: Install wazuh server file
+  hosts: 127.0.0.1
+  tasks:
+  - name: Install wazuh server file
+    ansible.builtin.shell:
+      cmd: curl -sO https://packages.wazuh.com/4.3/wazuh-install.sh
+      chdir: /home/wayche/Documents/GitHub/SEC-480/ansible/wazuh
+
+- name: Create wazuh server via remote shell
+  hosts: 10.0.5.29
+  tasks:
+  - name: Copy wazuh server to vm
+    ansible.builtin.copy:
+      src: wazuh/wazuh-install.sh
+      dest: /root
+      mode: u+rwx
+    become: true
+
+- name: Untar the tar file and Install wazuh server file
+  hosts: 127.0.0.1
+  tasks:
+  - name: Untar the tar file
+    ansible.builtin.shell:
+      cmd: tar xf wazuh-install-files.tar
+      chdir: /home/wayche/Documents/GitHub/SEC-480/ansible/wazuh/10.0.5.29/root
+
+  - name: Install wazuh agent file
+    ansible.builtin.shell:
+      cmd: curl -so wazuh-agent-4.3.10.deb https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.3.10-1_amd64.deb
+      chdir: /home/wayche/Documents/GitHub/SEC-480/ansible/wazuh
+
+- name: Create wazuh agent via remote shell
+  hosts: 10.0.5.30
+  tasks:
+  - name: Create wazuh agent 
+    ansible.builtin.copy:
+      src: wazuh/wazuh-agent-4.3.10.deb
+      dest: /root
+    become: true
+  
+  - name: Installing wazuh agent
+    ansible.builtin.shell: |
+      sudo WAZUH_MANAGER='10.0.5.29' WAZUH_AGENT_GROUP='default' dpkg -i /root/wazuh-agent-4.3.10.deb
+      sudo systemctl daemon-reload
+      sudo systemctl enable wazuh-agent
+      sudo systemctl start wazuh-agent
+    become: true
