@@ -227,3 +227,22 @@ function Edit-VM([string] $vmName, [int] $memAmt, [int] $cpuAmt){
     Get-VM -Name $vm | Set-VM -MemoryGB $memAmt -NumCpu $cpuAmt -Confirm:$false
     Write-Host "Memory and CPU Upgrade Complete" -ForegroundColor Green
 }
+function SetIPM9 ([string]$ethernetname="",[string]$ip="",[string]$mask="",[string]$gateway="",[string]$nameserver="") {
+    try {
+        $selected_vm = Select-VM
+        $vm = Get-VM -Name $selected_vm.Name
+        $cred = Get-Credential -Message "Please input the username and password for '$vm'"
+
+        # IP
+        $c1 = Invoke-VMScript -VM $vm -GuestCredential $cred -ScriptText "netsh interface ipv4 set address name='$ethernetname' static $ip $mask $gateway "
+        # DNS
+        $c2 = Invoke-VMScript -VM $vm -GuestCredential $cred -ScriptText "netsh interface ipv4 add dns name='$ethernetname' $nameserver index=1"
+
+        Invoke-VMScript -VM $vm -GuestCredential $cred -ScriptText "ipconfig /all"
+    }
+    catch {
+        Write-Host "Error with SetIPM9."
+        break
+    }
+    
+}

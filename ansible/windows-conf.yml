@@ -1,0 +1,78 @@
+- name: create ad
+  hosts: 10.0.5.5
+  vars_prompt:
+    - name: safemodepassword
+      prompt: Please enter your new safemode password
+      private: true
+
+    - name: adminpassword
+      prompt: Please enter your admin password
+      private: true
+
+    - name: hostname
+      prompt: Please enter the new hostname
+      private: false #gonna pause
+
+  tasks:
+#>  
+  - name: reset administrator password
+    ansible.windows.win_user:
+      name: Administrator
+      password: "{{ adminpassword }}"
+      state: present
+  
+  - name: set hostname to "{{ hostname }}"
+    ansible.windows.win_hostname:
+      name: "{{ hostname }}"
+    register: hostnamereboot
+
+  - name: reboot to set hostname
+    ansible.windows.win_reboot:
+    when: hostnamereboot.reboot_required
+  
+  - name: install ad feature
+    ansible.windows.win_feature:
+      name: AD-Domain-Services
+      state: present
+      include_management_tools: yes
+    register: adinstall
+  - debug:
+      var: adinstall.exitcode
+
+  - name: create domain 
+    ansible.windows.win_domain:
+      dns_domain_name: blue1.local
+      safe_mode_password: "{{ safemodepassword }}"
+      install_dns: true
+    register: domain_install
+  - debug:
+      var: domain_install.reboot_required
+
+  - name: reboot to set domain
+    ansible.windows.win_reboot:
+    when: domain_install.reboot_required
+
+  - name: elevate deployer user
+    community.windows.win_domain_user:
+      name: Administrator
+      state: present
+      groups_action: add
+      groups:
+        - Domain Admins
+        - Enterprise Admins
+        
+  - name: copy ps1 file
+    ansible.windows.win_copy:
+      src: ou-creator.ps1
+      dest: .\
+
+  - name: copy txt file containing OUs
+    ansible.windows.win_copy:
+      src: ou.txt
+      dest: .\
+
+  - name: running ps1 file to create OUs
+    ansible.windows.win_shell: ./ou-creator.ps1
+    register: ou
+  - debug:
+      var: ou.stdout_lines

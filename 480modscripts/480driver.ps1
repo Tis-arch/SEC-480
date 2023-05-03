@@ -34,10 +34,12 @@ VMBoot
 Write-Host "Network Setter active. Stop process to exit."
 Set-Network -vServer $conf.vcenter_server
 Get-VMInfo -vServer $conf.vcenter_server
-#>
 $vmName = Read-Host "Enter the name of the VM you wish to upgrade"
 $memAmt = Read-Host "Enter new memory amount"
 $cpuAmt = Read-Host "Enter new CPU amount"
 Edit-VM -vmName $vmName -memAmt $memAmt -cpuAmt $cpuAmt
 #this is done in GB
 # This may take a bit.
+#>
+SetIPM9 -VMName "DC-Blue1" -ethernetname "Ethernet0" -ip "10.0.5.5" -mask "255.255.255.0" -gateway "10.0.5.2" -nameserver "10.0.5.2"
+Get-VMInfo -vServer $conf.vcenter_server
